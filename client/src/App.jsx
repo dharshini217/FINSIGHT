@@ -24,10 +24,12 @@ function App() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/v1/transactions');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/transactions`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
       setTransactions(res.data.data);
       if (res.data.data.length > 1) {
-        const aiRes = await axios.post('http://127.0.0.1:8000/forecast', res.data.data);
+        const aiRes = await axios.post(`${import.meta.env.VITE_ML_URL}/forecast`, res.data.data);
         setForecast(aiRes.data.next_month_estimate);
       }
       setLoading(false);
@@ -38,10 +40,11 @@ function App() {
     e.preventDefault();
     const url = isLogin ? 'login' : 'register';
     try {
-      const res = await axios.post(`http://localhost:5000/api/v1/auth/${url}`, authData);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/${url}`, authData);
       if (isLogin) {
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        setUser(res.data.user);
+        const userData = { ...res.data.user, token: res.data.token };
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
       } else {
         alert("Registration Successful! Please Login.");
         setIsLogin(true);
@@ -57,7 +60,10 @@ function App() {
   const onAddTransaction = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/v1/transactions', { text, amount: +amount });
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/transactions`, 
+        { text, amount: +amount },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
       setText(''); setAmount('');
       fetchTransactions();
     } catch (err) { console.error(err); }

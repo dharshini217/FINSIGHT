@@ -3,7 +3,7 @@ const axios = require('axios'); // Use the tool we just installed
 
 exports.getTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.find();
+        const transactions = await Transaction.find({ user: req.user.id });
         return res.status(200).json({ success: true, count: transactions.length, data: transactions });
     } catch (err) {
         return res.status(500).json({ success: false, error: 'Server Error' });
@@ -17,7 +17,8 @@ exports.addTransaction = async (req, res) => {
         // 🤖 CALL THE AI: Send the text to the Python server on port 8000
         let aiCategory = 'Uncategorized';
         try {
-            const response = await axios.post('http://127.0.0.1:8000/predict', { text });
+            const mlUrl = process.env.ML_URL || 'http://127.0.0.1:8000';
+            const response = await axios.post(`${mlUrl}/predict`, { text });
             aiCategory = response.data.category; // This will be "AI Categorizing..."
         } catch (error) {
             console.log("AI Server (Python) is not responding.");
@@ -25,6 +26,7 @@ exports.addTransaction = async (req, res) => {
 
         // 💾 SAVE TO DATABASE: Save the transaction with the AI's category
         const transaction = await Transaction.create({
+            user: req.user.id,
             text,
             amount,
             category: aiCategory
